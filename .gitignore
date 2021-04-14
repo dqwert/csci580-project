@@ -1,7 +1,6 @@
 .idea/
 venv/
 playground/
-pics/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

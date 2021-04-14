@@ -1,5 +1,7 @@
-from glitch_effect import ImageGlitcher
 from PIL import Image
+
+from glitch_effect import ImageGlitcher
+
 
 def test_image_to_gif():
     """
@@ -13,8 +15,8 @@ def test_image_to_gif():
      You may change these to whatever you'd like
     """
 
-    DURATION = 200      # Set this to however many centiseconds each frame should be visible for
-    LOOP = 0            # Set this to how many times the gif should loop
+    DURATION = 200  # Set this to however many centiseconds each frame should be visible for
+    LOOP = 0  # Set this to how many times the gif should loop
     # LOOP = 0 means infinite loop
 
     # All default params (i.e step = 1, glitch_change = 0, cycle = False, Frames = 23, color_offset = False, scan_lines = False)
@@ -157,15 +159,14 @@ def test_image_to_image():
     glitch_img = glitcher.glitch_image(img, 2, seed=42, color_offset=True, scan_lines=True)
     glitch_img.save('glitch_result/glitched_test_all_obj.png')
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
     glitcher = ImageGlitcher()
     src_image = 'source.png'
     glitch_level = 1.0
 
-
     glitch_img = glitcher.glitch_image(src_image, glitch_level, gif=True, effect=1)
-    #glitch_img.show()
+    # glitch_img.show()
     glitch_img[0].save('glitch_result/source_glitch.gif',
                        format='GIF',
                        append_images=glitch_img[1:],
@@ -174,6 +175,5 @@ if __name__ == '__main__':
                        loop=0,
                        compress_level=3)
 
-    #test_image_to_image()
-    #test_image_to_gif()
-
+    # test_image_to_image()
+    # test_image_to_gif()
