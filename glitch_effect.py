@@ -31,7 +31,9 @@ class ImageGlitcher:
         self.glitch_max = 10.0
         self.glitch_min = 0.1
 
-        self.effects = (self.__glitch_effect_4, self.__glitch_effect_33)
+        self.effects = (self.__glitch_effect_4,
+                        self.__glitch_effect_33,
+                        self.__glitch_effect_analog_noise)
 
     def __isgif(self, img: Union[str, Image.Image]) -> bool:
         # Returns true if input image is a GIF and/or animated
@@ -586,5 +588,20 @@ class ImageGlitcher:
         return Image.alpha_composite(image, bnw_layer)
 
     def __glitch_effect_4(self, image: Image.Image) -> Image.Image:
-        images = image.split()
+        image = Image.effect_noise((100, 100), 128)
+        return image
+
+    def __glitch_effect_analog_noise(self, image: Image.Image) -> Image.Image:
+
+        def add_noise(x, mean, stddev):
+            return min(max(0, x + random.normalvariate(mean, stddev)), 255)
+
+        def add_noise_one_pixel(im, x, y, mean=0, stddev=50):
+            pixel = im.getpixel((x, y))
+            pixel = tuple(int(add_noise(channel, mean, stddev)) for channel in pixel)
+            im.putpixel((x, y), pixel)
+
+        for x in range(image.width):
+            for y in range(image.height):
+                add_noise_one_pixel(image, x, y)
         return image

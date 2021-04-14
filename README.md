@@ -10,7 +10,7 @@
 * 扫描线抖动故障（Scan Line Jitter Glitch）
 * 数字条纹故障（Digital Stripe Glitch）
   * Effect-26 / Wang
-* 模拟噪点故障（Analog Noise Glitch）
+* 模拟噪点故障（Analog Noise Glitch）/ Wang / Done
 * 屏幕跳跃故障（Screen Jump Glitch）
 * 屏幕抖动故障（Screen Shake Glitch）
 * 波动抖动故障（Wave Jitter Glitch）
@@ -20,4 +20,4 @@
 # Reference
  [45 Glitch Effect](https://csspoint101.com/45-css-glitch-effect/)
 
- [QianMo](https://zhuanlan.zhihu.com/p/148256756)
+ [高品质后处理：十种故障艺术(Glitch Art)算法的总结与实现](https://zhuanlan.zhihu.com/p/148256756)

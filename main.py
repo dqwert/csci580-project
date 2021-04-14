@@ -19,7 +19,8 @@ def test_image_to_gif():
     LOOP = 0  # Set this to how many times the gif should loop
     # LOOP = 0 means infinite loop
 
-    # All default params (i.e step = 1, glitch_change = 0, cycle = False, Frames = 23, color_offset = False, scan_lines = False)
+    # All default params
+    # (i.e step = 1, glitch_change = 0, cycle = False, Frames = 23, color_offset = False, scan_lines = False)
     glitch_imgs = glitcher.glitch_image(src_image, 2, gif=True)
     glitch_imgs[0].save('glitch_result/glitched_test_default.gif',
                         format='GIF',
@@ -165,7 +166,7 @@ if __name__ == '__main__':
     src_image = 'pics/source.png'
     glitch_level = 1.0
 
-    glitch_img = glitcher.glitch_image(src_image, glitch_level, gif=True, effect_type_seq=(0, ))
+    glitch_img = glitcher.glitch_image(src_image, glitch_level, gif=True, effect_type_seq=(-1,))
     # glitch_img.show()
     glitch_img[0].save('glitch_result/source_glitch.gif',
                        format='GIF',
