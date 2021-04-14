@@ -162,10 +162,10 @@ def test_image_to_image():
 
 if __name__ == '__main__':
     glitcher = ImageGlitcher()
-    src_image = 'source.png'
+    src_image = 'pics/source.png'
     glitch_level = 1.0
 
-    glitch_img = glitcher.glitch_image(src_image, glitch_level, gif=True, effect=1)
+    glitch_img = glitcher.glitch_image(src_image, glitch_level, gif=True, effect_type_seq=(0, ))
     # glitch_img.show()
     glitch_img[0].save('glitch_result/source_glitch.gif',
                        format='GIF',

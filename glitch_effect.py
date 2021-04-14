@@ -31,6 +31,8 @@ class ImageGlitcher:
         self.glitch_max = 10.0
         self.glitch_min = 0.1
 
+        self.effects = (self.__glitch_effect_4, self.__glitch_effect_33)
+
     def __isgif(self, img: Union[str, Image.Image]) -> bool:
         # Returns true if input image is a GIF and/or animated
         if isinstance(img, str):
@@ -58,7 +60,10 @@ class ImageGlitcher:
             # Otherwise convert it to RGB
             return Image.open(img_path).convert('RGB')
 
-    def __fetch_image(self, src_img: Union[str, Image.Image], gif_allowed: bool) -> Image.Image:
+    def __fetch_image(self,
+                      src_img: Union[str, Image.Image],
+                      gif_allowed: bool
+                      ) -> Image.Image:
         """
          The following code resolves whether input was a path or an Image
          Then returns an Image object
@@ -104,10 +109,19 @@ class ImageGlitcher:
             raise Exception('Wrong format')
         return img
 
-    def glitch_image(self, src_img: Union[str, Image.Image], glitch_amount: Union[int, float],
-                     seed: Optional[Union[int, float]] = None, glitch_change: Union[int, float] = 0.0,
-                     color_offset: bool = False, scan_lines: bool = False, gif: bool = False, cycle: bool = False,
-                     frames: int = 23, step: int = 1, effect: int = 0) -> Union[Image.Image, List[Image.Image]]:
+    def glitch_image(self,
+                     src_img: Union[str, Image.Image],
+                     glitch_amount: Union[int, float],
+                     seed: Optional[Union[int, float]] = None,
+                     glitch_change: Union[int, float] = 0.0,
+                     color_offset: bool = False,
+                     scan_lines: bool = False,
+                     gif: bool = False,
+                     cycle: bool = False,
+                     frames: int = 23,
+                     step: int = 1,
+                     effect_type_seq: tuple[int] = ()
+                     ) -> Union[Image.Image, List[Image.Image]]:
         """
          Sets up values needed for glitching the image
          Returns created Image object if gif=False
@@ -125,7 +139,6 @@ class ImageGlitcher:
          step: Glitch every step'th frame, defaults to 1 (i.e all frames)
          seed: Set a random seed for generating similar images across runs,
                defaults to None (random seed).
-               :param effect:
         """
 
         # Sanity checking the inputs
@@ -212,7 +225,7 @@ class ImageGlitcher:
                 glitched_imgs.append(img.copy())
                 continue
             glitched_img = self.__get_glitched_img(
-                glitch_amount, color_offset, scan_lines, effect)
+                glitch_amount, color_offset, scan_lines, effect_type_seq)
             file_path = os.path.join(self.gif_dirpath, 'glitched_frame.png')
             glitched_img.save(file_path, compress_level=3)
             glitched_imgs.append(Image.open(file_path).copy())
@@ -226,10 +239,16 @@ class ImageGlitcher:
         shutil.rmtree(self.gif_dirpath)
         return glitched_imgs
 
-    def glitch_gif(self, src_gif: Union[str, Image.Image], glitch_amount: Union[int, float],
-                   seed: Union[int, float] = None, glitch_change: Union[int, float] = 0.0,
-                   color_offset: bool = False, scan_lines: bool = False, gif: bool = False, cycle: bool = False,
-                   step=1) -> Tuple[List[Image.Image], float, int]:
+    def glitch_gif(self,
+                   src_gif: Union[str, Image.Image],
+                   glitch_amount: Union[int, float],
+                   seed: Union[int, float] = None,
+                   glitch_change: Union[int, float] = 0.0,
+                   color_offset: bool = False,
+                   scan_lines: bool = False,
+                   gif: bool = False, cycle: bool = False,
+                   step=1
+                   ) -> Tuple[List[Image.Image], float, int]:
         """
          Glitch each frame of input GIF
          Returns the following:
@@ -354,17 +373,19 @@ class ImageGlitcher:
         if glitch_amount < self.glitch_min:
             # If it's less, it will be cycled back to max when cycle=True
             # Otherwise, it'll stay at the least possible value -> glitch_min
-            glitch_amount = float(
-                Decimal(self.glitch_max) + Decimal(glitch_amount)) if cycle else self.glitch_min
+            glitch_amount = float(Decimal(self.glitch_max) + Decimal(glitch_amount)) if cycle else self.glitch_min
         if glitch_amount > self.glitch_max:
             # If it's more, it will be cycled back to min when cycle=True
             # Otherwise, it'll stay at the max possible value -> glitch_max
-            glitch_amount = float(Decimal(glitch_amount) % Decimal(
-                self.glitch_max)) if cycle else self.glitch_max
+            glitch_amount = float(Decimal(glitch_amount) % Decimal(self.glitch_max)) if cycle else self.glitch_max
         return glitch_amount
 
-    def __get_glitched_img(self, glitch_amount: Union[int, float], color_offset: int, scan_lines: bool,
-                           effect: int) -> Image.Image:
+    def __get_glitched_img(self,
+                           glitch_amount: Union[int, float],
+                           color_offset: int,
+                           scan_lines: bool,
+                           effect_type_seq: tuple[int] = ()
+                           ) -> Image.Image:
         """
          Glitches the image located at given path
          Intensity of glitch depends on glitch_amount
@@ -417,8 +438,10 @@ class ImageGlitcher:
             self.__add_scan_lines()
 
         image = Image.fromarray(self.outputarr, self.img_mode)
-        if effect:
-            image = self.__glitch_effect_33(image)
+
+        if len(effect_type_seq) > 0:
+            for i in effect_type_seq:
+                image = self.effects[i](image)
 
         # Creating glitched image from output array
         # return Image.fromarray(self.outputarr, self.img_mode)
@@ -510,36 +533,18 @@ class ImageGlitcher:
         offset_x = offset_x if offset_x >= 0 else self.img_width + offset_x
         offset_y = offset_y if offset_y >= 0 else self.img_height + offset_y
 
-        # Assign values from 0th row of inputarr to offset_y th
-        # row of outputarr
-        # If outputarr's columns run out before inputarr's does,
-        # wrap the remaining values around
-        self.outputarr[offset_y,
-        offset_x:,
-        channel_index] = self.inputarr[0,
-                         :self.img_width - offset_x,
-                         channel_index]
-        self.outputarr[offset_y,
-        :offset_x,
-        channel_index] = self.inputarr[0,
-                         self.img_width - offset_x:,
-                         channel_index]
+        # Assign values from 0th row of inputarr to offset_y th row of outputarr
+        # If outputarr's columns run out before inputarr's does, wrap the remaining values around
+        self.outputarr[offset_y, offset_x:, channel_index] = self.inputarr[0, :self.img_width - offset_x, channel_index]
+        self.outputarr[offset_y, :offset_x, channel_index] = self.inputarr[0, self.img_width - offset_x:, channel_index]
 
         # Continue afterwards till end of outputarr
         # Make sure the width and height match for both slices
-        self.outputarr[offset_y + 1:,
-        :,
-        channel_index] = self.inputarr[1:self.img_height - offset_y,
-                         :,
-                         channel_index]
+        self.outputarr[offset_y + 1:, :, channel_index] = self.inputarr[1:self.img_height - offset_y, :, channel_index]
 
         # Restart from 0th row of outputarr and go until the offset_y th row
         # This will assign the remaining values in inputarr to outputarr
-        self.outputarr[:offset_y,
-        :,
-        channel_index] = self.inputarr[self.img_height - offset_y:,
-                         :,
-                         channel_index]
+        self.outputarr[:offset_y, :, channel_index] = self.inputarr[self.img_height - offset_y:, :, channel_index]
 
     def __get_random_channel(self) -> int:
         # Returns a random index from 0 to pixel_tuple_len
@@ -579,3 +584,7 @@ class ImageGlitcher:
         draw.rectangle([x, y, min(x + x, canvas_width), min(y + y, canvas_height)], fill=colors[color_index])
 
         return Image.alpha_composite(image, bnw_layer)
+
+    def __glitch_effect_4(self, image: Image.Image) -> Image.Image:
+        images = image.split()
+        return image

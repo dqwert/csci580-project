@@ -1,6 +1,8 @@
 .idea/
 venv/
 playground/
+test_result/
+glitch_result/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
