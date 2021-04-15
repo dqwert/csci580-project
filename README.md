@@ -1,7 +1,6 @@
 # Progress
 
-* RGB颜色分离故障（RGB Split Glitch）
-  * Effect-4 / Wang
+* RGB颜色分离故障（RGB Split Glitch）/ Wang / Done
 * 错位图块故障（Image Block Glitch）
   * Effect-5 / Wang
 * 错位线条故障（Line Block Glitch）

@@ -31,9 +31,10 @@ class ImageGlitcher:
         self.glitch_max = 10.0
         self.glitch_min = 0.1
 
-        self.effects = (self.__glitch_effect_4,
-                        self.__glitch_effect_33,
-                        self.__glitch_effect_analog_noise)
+        self.effects = (self.__glitch_effect_33,
+                        self.__glitch_effect_analog_noise,
+                        self.__rgb_split,
+                        self.__tile_jittered)
 
     def __isgif(self, img: Union[str, Image.Image]) -> bool:
         # Returns true if input image is a GIF and/or animated
@@ -587,11 +588,7 @@ class ImageGlitcher:
 
         return Image.alpha_composite(image, bnw_layer)
 
-    def __glitch_effect_4(self, image: Image.Image) -> Image.Image:
-        image = Image.effect_noise((100, 100), 128)
-        return image
-
-    def __glitch_effect_analog_noise(self, image: Image.Image) -> Image.Image:
+    def __glitch_effect_analog_noise(self, image: Image.Image, mean=0, stddev=30) -> Image.Image:
 
         def add_noise(x, mean, stddev):
             return min(max(0, x + random.normalvariate(mean, stddev)), 255)
@@ -603,5 +600,51 @@ class ImageGlitcher:
 
         for x in range(image.width):
             for y in range(image.height):
-                add_noise_one_pixel(image, x, y)
+                add_noise_one_pixel(image, x, y, mean, stddev)
+        return image
+
+    def __rgb_split(self, image, mean=0, stddev=0.003) -> Image.Image:
+
+        def clamp(x, max, min=0):
+            if x < min:
+                return min
+            elif x > max:
+                return max
+            else:
+                return x
+
+        x_offset = random.normalvariate(mean, stddev) * image.width
+        y_offset = random.normalvariate(mean, stddev) * image.height
+
+        original = image.copy()
+
+        width = image.width
+        height = image.height
+        for y in range(height):
+            for x in range(width):
+                image.putpixel((x, y),
+                               (original.getpixel((clamp(x + x_offset, width - 1), clamp(y + y_offset, height - 1)))[0],
+                                original.getpixel((clamp(x - x_offset, width - 1), clamp(y - y_offset, height - 1)))[1],
+                                original.getpixel((clamp(x, width), clamp(y, height)))[2],
+                                original.getpixel((x, y))[3]))
+        return image
+
+    def __tile_jittered(self, image, strip_height=50, mean=0, stddev=0.1) -> Image.Image:
+        x_offset = random.normalvariate(mean, stddev) * image.width
+        original = image.copy()
+
+        width = image.width
+        height = image.height
+        was_jittered = False
+        prev_strip = -1
+
+        for y in range(height):
+            current_strip = y // strip_height
+            is_jittered = current_strip % 2 == 0
+            if prev_strip != current_strip:
+                x_offset = random.normalvariate(mean, stddev) * image.width
+            prev_strip = current_strip
+            for x in range(width):
+                if is_jittered:
+                    image.putpixel((x, y), original.getpixel(((x + x_offset) % width, y)))
         return image
