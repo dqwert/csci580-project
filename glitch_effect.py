@@ -34,7 +34,8 @@ class ImageGlitcher:
         self.effects = (self.__glitch_effect_33,
                         self.__glitch_effect_analog_noise,
                         self.__rgb_split,
-                        self.__tile_jittered)
+                        self.__tile_jittered,
+                        self.__screen_jump_effect)
 
     def __isgif(self, img: Union[str, Image.Image]) -> bool:
         # Returns true if input image is a GIF and/or animated
@@ -648,3 +649,51 @@ class ImageGlitcher:
                 if is_jittered:
                     image.putpixel((x, y), original.getpixel(((x + x_offset) % width, y)))
         return image
+
+    def __screen_jump_effect(self, image, vertical=True):
+        """
+                 Grabs a rectange from inputarr and shifts it leftwards
+                 Any lost pixel data is wrapped back to the right
+                 Rectangle's Width and Height are determined from offset
+                 Consider an array like so-
+                 [[ 0, 1, 2, 3],
+                 [ 4, 5, 6, 7],
+                 [ 8, 9, 10, 11],
+                 [12, 13, 14, 15]]
+                 If we were to left shift the first row only, starting from the 1st index;
+                 i.e a rectangle of width = 3, height = 1, starting at (0, 0)
+                 We'd grab [1, 2, 3] and left shift it until the start of row
+                 so it'd look like [[1, 2, 3, 3]]
+                 Now we wrap around the lost values, i.e 0
+                 now it'd look like [[1, 2, 3, 0]]
+                 That's the end result!
+                """
+        # Setting up values that will determine the rectangle height
+        if not vertical:
+            start_y = 0
+            stop_y = self.img_height
+
+            # For copy
+            start_x = int(0.15 * self.img_width)
+            # For paste
+            stop_x = self.img_width - start_x
+
+            left_chunk = self.outputarr[start_y:stop_y, start_x:]
+            wrap_chunk = self.outputarr[start_y:stop_y, :start_x]
+            self.outputarr[start_y:stop_y, :stop_x] = left_chunk
+            self.outputarr[start_y:stop_y, stop_x:] = wrap_chunk
+        else:
+            start_x = 0
+            stop_x = self.img_width
+
+            # For copy
+            start_y = int(0.15 * self.img_height)
+            # For paste
+            stop_y = self.img_height - start_y
+
+            up_chunk = self.outputarr[start_y:, start_x:stop_x]
+            wrap_chunk = self.outputarr[:start_y, start_x:stop_x]
+            self.outputarr[:stop_y, start_x:stop_x] = up_chunk
+            self.outputarr[stop_y:, start_x:stop_x] = wrap_chunk
+
+        return Image.fromarray(self.outputarr, self.img_mode)
