@@ -4,8 +4,7 @@
 * 错位图块故障（Image Block Glitch）
   * Effect-5 / Wang
 * 错位线条故障（Line Block Glitch）
-* 图块抖动故障（Tile Jitter Glitch）
-  * Effect-22 / Wang 
+* 图块抖动故障（Tile Jitter Glitch）/ Wang / Done
 * 扫描线抖动故障（Scan Line Jitter Glitch）
 * 数字条纹故障（Digital Stripe Glitch）
   * Effect-26 / Wang
