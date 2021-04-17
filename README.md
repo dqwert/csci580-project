@@ -1,7 +1,7 @@
 # Progress
 
 * RGB颜色分离故障（RGB Split Glitch）/ Wang / Done
-* 错位图块故障（Image Block Glitch）/ Wang
+* 错位图块故障（Image Block Glitch）/ Wang / Done
 * 错位线条故障（Line Block Glitch）
 * 图块抖动故障（Tile Jitter Glitch）/ Wang / Done
 * 扫描线抖动故障（Scan Line Jitter Glitch）

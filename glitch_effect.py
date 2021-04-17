@@ -35,7 +35,8 @@ class ImageGlitcher:
                         self.__glitch_effect_analog_noise,
                         self.__rgb_split,
                         self.__tile_jittered,
-                        self.__screen_jump_effect)
+                        self.__screen_jump_effect,
+                        self.__image_block)
 
     def __isgif(self, img: Union[str, Image.Image]) -> bool:
         # Returns true if input image is a GIF and/or animated
@@ -566,6 +567,14 @@ class ImageGlitcher:
         """
         random.seed(self.seed + offset)
 
+    def clamp(self, x, max, min=0):
+        if x < min:
+            return min
+        elif x > max:
+            return max
+        else:
+            return x
+
     def __glitch_effect_33(self, image):
         colors = ["#b4b2b5", "#dfd73f", "#6ed2dc", "#66cf5d", "#c542cb", "#d0535e", "#3733c9"]
         canvas_height = self.img_height
@@ -606,14 +615,6 @@ class ImageGlitcher:
 
     def __rgb_split(self, image, mean=0, stddev=0.003) -> Image.Image:
 
-        def clamp(x, max, min=0):
-            if x < min:
-                return min
-            elif x > max:
-                return max
-            else:
-                return x
-
         x_offset = random.normalvariate(mean, stddev) * image.width
         y_offset = random.normalvariate(mean, stddev) * image.height
 
@@ -624,9 +625,9 @@ class ImageGlitcher:
         for y in range(height):
             for x in range(width):
                 image.putpixel((x, y),
-                               (original.getpixel((clamp(x + x_offset, width - 1), clamp(y + y_offset, height - 1)))[0],
-                                original.getpixel((clamp(x - x_offset, width - 1), clamp(y - y_offset, height - 1)))[1],
-                                original.getpixel((clamp(x, width), clamp(y, height)))[2],
+                               (original.getpixel((self.clamp(x + x_offset, width - 1), self.clamp(y + y_offset, height - 1)))[0],
+                                original.getpixel((self.clamp(x - x_offset, width - 1), self.clamp(y - y_offset, height - 1)))[1],
+                                original.getpixel((self.clamp(x, width), self.clamp(y, height)))[2],
                                 original.getpixel((x, y))[3]))
         return image
 
@@ -643,7 +644,7 @@ class ImageGlitcher:
             current_strip = y // strip_height
             is_jittered = current_strip % 2 == 0
             if prev_strip != current_strip:
-                x_offset = random.normalvariate(mean, stddev) * image.width
+                x_offset = int(random.normalvariate(mean, stddev) * image.width)
             prev_strip = current_strip
             for x in range(width):
                 if is_jittered:
@@ -697,3 +698,39 @@ class ImageGlitcher:
             self.outputarr[stop_y:, start_x:stop_x] = wrap_chunk
 
         return Image.fromarray(self.outputarr, self.img_mode)
+
+    def __image_block(self, image, color_effect=True,
+                      num_mean=20, num_stddev=10,
+                      size_mean=0.09, size_stddev=0.03,
+                      offset_mean=0, offset_stddev=0.05) -> Image.Image:
+        original = image.copy()
+        block_num = int(random.normalvariate(num_mean, num_stddev))
+        height = image.height
+        width = image.width
+        colors = ["#b4b2b5", "#dfd73f", "#6ed2dc", "#66cf5d", "#c542cb", "#d0535e", "#3733c9"]
+
+        for _ in range(block_num):
+            x = random.randint(0, width - 1)
+            y = random.randint(0, height - 1)
+
+            len_x = int(random.normalvariate(size_mean, size_stddev) * width)
+            len_y = int(random.normalvariate(size_mean, size_stddev) * height)
+
+            offset_x = int(random.normalvariate(offset_mean, offset_stddev) * width)
+            offset_y = int(random.normalvariate(offset_mean, offset_stddev) * height)
+
+            color = np.random.randint(3, size=4).tolist()
+
+            if color_effect:
+                for j in range(y, y + len_y):
+                    for i in range(x, x + len_x):
+                        image.putpixel((self.clamp(i, width - 1, 0), self.clamp(j, height - 1, 0)),
+                                       tuple(min(m * n, 255) for (m, n) in zip(color,
+                                                                      original.getpixel(((i + offset_x) % width,
+                                                                                         (j + offset_y) % height)))))
+            else:
+                for j in range(y, y + len_y):
+                    for i in range(x, x + len_x):
+                        image.putpixel((self.clamp(i, width - 1, 0), self.clamp(j, height - 1, 0)),
+                                       original.getpixel(((i + offset_x) % width, (j + offset_y) % height)))
+        return image

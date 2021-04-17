@@ -10,8 +10,16 @@ from PIL import Image, ImageSequence, ImageDraw
 
 image = Image.open('pics/source.png')
 assert isinstance(image, Image.Image)
-mean = 0
-stddev = 0.1
+
+
+def clamp(x, max, min=0):
+    if x < min:
+        return min
+    elif x > max:
+        return max
+    else:
+        return x
+
 
 
 image.save('test_result/test_output.png')
