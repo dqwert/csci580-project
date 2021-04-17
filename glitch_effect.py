@@ -1,3 +1,4 @@
+import math
 import os
 import random
 import shutil
@@ -37,7 +38,8 @@ class ImageGlitcher:
                         self.__tile_jittered,
                         self.__screen_jump_effect,
                         self.__image_block,
-                        self.__screen_shake_effect)
+                        self.__screen_shake_effect,
+                        self.__wave_jitter_effect)
 
     def __isgif(self, img: Union[str, Image.Image]) -> bool:
         # Returns true if input image is a GIF and/or animated
@@ -703,6 +705,34 @@ class ImageGlitcher:
         shake_array[start_y:stop_y, :stop_x] = left_chunk
         shake_array[start_y:stop_y, stop_x:] = wrap_chunk
 
+        return Image.fromarray(shake_array, self.img_mode)
+
+    def __wave_jitter_effect(self, image, wave=10, amplitude=10):
+        height = self.img_height
+        vertical_range = height / wave
+        offset = random.randint(0, self.img_height)
+        shake_array = self.outputarr.copy()
+        for i in range(height):
+            omega = ((i + offset) % vertical_range) / vertical_range * 2 * math.pi
+            shift = int(amplitude * math.sin(omega))
+
+            start_y = i
+            stop_y = i + 1
+
+            if shift > 0:
+                start_x = shift
+                stop_x = self.img_width - shift
+            elif shift < 0:
+                shift *= -1
+                start_x = self.img_width - shift
+                stop_x = shift
+            else:
+                continue
+
+            left_chunk = self.outputarr[start_y:stop_y, start_x:]
+            wrap_chunk = self.outputarr[start_y:stop_y, :start_x]
+            shake_array[start_y:stop_y, :stop_x] = left_chunk
+            shake_array[start_y:stop_y, stop_x:] = wrap_chunk
         return Image.fromarray(shake_array, self.img_mode)
 
     def __image_block(self, image, color_effect=True,
