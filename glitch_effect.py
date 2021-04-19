@@ -38,10 +38,8 @@ class ImageGlitcher:
                         self.__tile_jittered,
                         self.__screen_jump_effect,
                         self.__image_block,
-                        self.__wave_jitter_effect,
-                        self.__scan_line)
-
-        self.__scan_line_current_step = 0
+                        self.__screen_shake_effect,
+                        self.__wave_jitter_effect)
 
     def __isgif(self, img: Union[str, Image.Image]) -> bool:
         # Returns true if input image is a GIF and/or animated
@@ -657,24 +655,6 @@ class ImageGlitcher:
         return image
 
     def __screen_jump_effect(self, image, vertical=True):
-        """
-                 Grabs a rectange from inputarr and shifts it leftwards
-                 Any lost pixel data is wrapped back to the right
-                 Rectangle's Width and Height are determined from offset
-                 Consider an array like so-
-                 [[ 0, 1, 2, 3],
-                 [ 4, 5, 6, 7],
-                 [ 8, 9, 10, 11],
-                 [12, 13, 14, 15]]
-                 If we were to left shift the first row only, starting from the 1st index;
-                 i.e a rectangle of width = 3, height = 1, starting at (0, 0)
-                 We'd grab [1, 2, 3] and left shift it until the start of row
-                 so it'd look like [[1, 2, 3, 3]]
-                 Now we wrap around the lost values, i.e 0
-                 now it'd look like [[1, 2, 3, 0]]
-                 That's the end result!
-                """
-        # Setting up values that will determine the rectangle height
         if not vertical:
             start_y = 0
             stop_y = self.img_height
@@ -703,6 +683,57 @@ class ImageGlitcher:
             self.outputarr[stop_y:, start_x:stop_x] = wrap_chunk
 
         return Image.fromarray(self.outputarr, self.img_mode)
+
+    def __screen_shake_effect(self, image, amplitude=5):
+        start_y = 0
+        stop_y = self.img_height
+
+        # For copy
+        offset = random.random()
+        if offset < 0.5:
+            offset = offset / amplitude
+        else:
+            offset = 1 - offset / amplitude
+
+        start_x = int(offset * self.img_width)
+        # For paste
+        stop_x = self.img_width - start_x
+        shake_array = self.outputarr.copy()
+
+        left_chunk = self.outputarr[start_y:stop_y, start_x:]
+        wrap_chunk = self.outputarr[start_y:stop_y, :start_x]
+        shake_array[start_y:stop_y, :stop_x] = left_chunk
+        shake_array[start_y:stop_y, stop_x:] = wrap_chunk
+
+        return Image.fromarray(shake_array, self.img_mode)
+
+    def __wave_jitter_effect(self, image, wave=10, amplitude=10):
+        height = self.img_height
+        vertical_range = height / wave
+        offset = random.randint(0, self.img_height)
+        shake_array = self.outputarr.copy()
+        for i in range(height):
+            omega = ((i + offset) % vertical_range) / vertical_range * 2 * math.pi
+            shift = int(amplitude * math.sin(omega))
+
+            start_y = i
+            stop_y = i + 1
+
+            if shift > 0:
+                start_x = shift
+                stop_x = self.img_width - shift
+            elif shift < 0:
+                shift *= -1
+                start_x = self.img_width - shift
+                stop_x = shift
+            else:
+                continue
+
+            left_chunk = self.outputarr[start_y:stop_y, start_x:]
+            wrap_chunk = self.outputarr[start_y:stop_y, :start_x]
+            shake_array[start_y:stop_y, :stop_x] = left_chunk
+            shake_array[start_y:stop_y, stop_x:] = wrap_chunk
+        return Image.fromarray(shake_array, self.img_mode)
 
     def __image_block(self, image, color_effect=True,
                       num_mean=20, num_stddev=10,
@@ -739,60 +770,3 @@ class ImageGlitcher:
                         image.putpixel((self.clamp(i, width - 1, 0), self.clamp(j, height - 1, 0)),
                                        original.getpixel(((i + offset_x) % width, (j + offset_y) % height)))
         return image
-
-    def __wave_jitter_effect(self, image, wave=10, amplitude=10):
-        height = self.img_height
-        vertical_range = height / wave
-        offset = random.randint(0, self.img_height)
-        shake_array = self.outputarr.copy()
-        for i in range(height):
-            omega = ((i + offset) % vertical_range) / vertical_range * 2 * math.pi
-            shift = int(amplitude * math.sin(omega))
-
-            start_y = i
-            stop_y = i + 1
-
-            if shift > 0:
-                start_x = shift
-                stop_x = self.img_width - shift
-            elif shift < 0:
-                shift *= -1
-                start_x = self.img_width - shift
-                stop_x = shift
-            else:
-                continue
-
-            left_chunk = self.outputarr[start_y:stop_y, start_x:]
-            wrap_chunk = self.outputarr[start_y:stop_y, :start_x]
-            shake_array[start_y:stop_y, :stop_x] = left_chunk
-            shake_array[start_y:stop_y, stop_x:] = wrap_chunk
-        return Image.fromarray(shake_array, self.img_mode)
-
-    def __scan_line(self, image, offset_ratio=0.1, total_step=30):
-        self.__scan_line_current_step = (self.__scan_line_current_step + 1) % total_step
-
-        amplitude = math.sin(self.__scan_line_current_step / total_step * 2 * math.pi)
-
-        width = self.img_width
-        height = self.img_height
-        shake_array = self.outputarr.copy()
-        for i in range(height):
-            shift = int(amplitude * self.clamp(int(random.normalvariate(0, int(width * offset_ratio))), width, -width))
-            start_y = i
-            stop_y = i + 1
-
-            if shift > 0:
-                start_x = shift
-                stop_x = self.img_width - shift
-            elif shift < 0:
-                shift *= -1
-                start_x = self.img_width - shift
-                stop_x = shift
-            else:
-                continue
-
-            left_chunk = self.outputarr[start_y:stop_y, start_x:]
-            wrap_chunk = self.outputarr[start_y:stop_y, :start_x]
-            shake_array[start_y:stop_y, :stop_x] = left_chunk
-            shake_array[start_y:stop_y, stop_x:] = wrap_chunk
-        return Image.fromarray(shake_array, self.img_mode)

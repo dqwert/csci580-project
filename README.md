@@ -8,8 +8,8 @@
 * 数字条纹故障（Digital Stripe Glitch） / Wang / Done*
 * 模拟噪点故障（Analog Noise Glitch）/ Wang / Done
 * 屏幕跳跃故障（Screen Jump Glitch）/ Yiran / Done
-* 屏幕抖动故障（Screen Shake Glitch）
-* 波动抖动故障（Wave Jitter Glitch）
+* 屏幕抖动故障（Screen Shake Glitch）/ Yiran / Done
+* 波动抖动故障（Wave Jitter Glitch）/ Yiran / Done
 * Extra: 
   * image glitch overlay effect / Effect-21
 
