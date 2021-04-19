@@ -39,7 +39,9 @@ class ImageGlitcher:
                         self.__screen_jump_effect,
                         self.__image_block,
                         self.__screen_shake_effect,
-                        self.__wave_jitter_effect)
+                        self.__wave_jitter_effect,
+                        self.__image_block,
+                        self.__scan_line)
 
     def __isgif(self, img: Union[str, Image.Image]) -> bool:
         # Returns true if input image is a GIF and/or animated
@@ -770,3 +772,32 @@ class ImageGlitcher:
                         image.putpixel((self.clamp(i, width - 1, 0), self.clamp(j, height - 1, 0)),
                                        original.getpixel(((i + offset_x) % width, (j + offset_y) % height)))
         return image
+
+    def __scan_line(self, image, offset_ratio=0.1, total_step=30):
+        self.__scan_line_current_step = (self.__scan_line_current_step + 1) % total_step
+
+        amplitude = math.sin(self.__scan_line_current_step / total_step * 2 * math.pi)
+
+        width = self.img_width
+        height = self.img_height
+        shake_array = self.outputarr.copy()
+        for i in range(height):
+            shift = int(amplitude * self.clamp(int(random.normalvariate(0, int(width * offset_ratio))), width, -width))
+            start_y = i
+            stop_y = i + 1
+
+            if shift > 0:
+                start_x = shift
+                stop_x = self.img_width - shift
+            elif shift < 0:
+                shift *= -1
+                start_x = self.img_width - shift
+                stop_x = shift
+            else:
+                continue
+
+            left_chunk = self.outputarr[start_y:stop_y, start_x:]
+            wrap_chunk = self.outputarr[start_y:stop_y, :start_x]
+            shake_array[start_y:stop_y, :stop_x] = left_chunk
+            shake_array[start_y:stop_y, stop_x:] = wrap_chunk
+        return Image.fromarray(shake_array, self.img_mode)
