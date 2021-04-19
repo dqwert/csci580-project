@@ -8,9 +8,6 @@ import numpy
 import numpy as np
 from PIL import Image, ImageSequence, ImageDraw
 
-image = Image.open('pics/source.png')
-assert isinstance(image, Image.Image)
-
 
 def clamp(x, max, min=0):
     if x < min:
@@ -20,6 +17,15 @@ def clamp(x, max, min=0):
     else:
         return x
 
+
+image = Image.open('pics/source.png')
+assert isinstance(image, Image.Image)
+
+
+width = image.width
+height = image.height
+
+offset_array = np.random.randint(height, size=height).tolist()
 
 
 image.save('test_result/test_output.png')

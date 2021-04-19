@@ -5,7 +5,7 @@
 * 错位线条故障（Line Block Glitch）
 * 图块抖动故障（Tile Jitter Glitch）/ Wang / Done
 * 扫描线抖动故障（Scan Line Jitter Glitch）
-* 数字条纹故障（Digital Stripe Glitch） / Wang
+* 数字条纹故障（Digital Stripe Glitch） / Wang / Done*
 * 模拟噪点故障（Analog Noise Glitch）/ Wang / Done
 * 屏幕跳跃故障（Screen Jump Glitch）/ Yiran / Done
 * 屏幕抖动故障（Screen Shake Glitch）
