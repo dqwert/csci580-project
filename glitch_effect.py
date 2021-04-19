@@ -41,7 +41,8 @@ class ImageGlitcher:
                         self.__screen_shake_effect,
                         self.__wave_jitter_effect,
                         self.__image_block,
-                        self.__scan_line)
+                        self.__scan_line,
+                        self.__line_block)
 
     def __isgif(self, img: Union[str, Image.Image]) -> bool:
         # Returns true if input image is a GIF and/or animated
@@ -642,7 +643,6 @@ class ImageGlitcher:
 
         width = image.width
         height = image.height
-        was_jittered = False
         prev_strip = -1
 
         for y in range(height):
@@ -801,3 +801,22 @@ class ImageGlitcher:
             shake_array[start_y:stop_y, :stop_x] = left_chunk
             shake_array[start_y:stop_y, stop_x:] = wrap_chunk
         return Image.fromarray(shake_array, self.img_mode)
+
+    def __line_block(self, image, glitch_in=0.1, glitch_out=0.2, mean=0, stddev=0.1):
+        width = image.width
+        height = image.height
+        original = image.copy()
+
+        glitch = False
+        offset = int(random.normalvariate(mean, stddev) * image.width)
+        for y in range(height):
+            if not glitch and random.random() < glitch_in:
+                offset = int(random.normalvariate(mean, stddev) * image.width)
+                glitch = not glitch
+            elif glitch and random.random() < glitch_out:
+                glitch = not glitch
+
+            for x in range(width):
+                if glitch:
+                    image.putpixel((x, y), original.getpixel((self.clamp(x + offset, width - 1), y)))
+        return image

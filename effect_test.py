@@ -22,10 +22,6 @@ image = Image.open('pics/source.png')
 assert isinstance(image, Image.Image)
 
 
-width = image.width
-height = image.height
-
-offset_array = np.random.randint(height, size=height).tolist()
 
 
 image.save('test_result/test_output.png')
