@@ -1,6 +1,6 @@
 # Progress
 
-* RGB颜色分离故障（RGB Split Glitch）/ Wang / Done
+* RGB 颜色分离故障（RGB Split Glitch）/ Wang / Done
 * 错位图块故障（Image Block Glitch）/ Wang / Done
 * 错位线条故障（Line Block Glitch）/ Wang / Done
 * 图块抖动故障（Tile Jitter Glitch）/ Wang / Done
@@ -15,3 +15,7 @@
  [45 Glitch Effect](https://csspoint101.com/45-css-glitch-effect/)
 
  [高品质后处理：十种故障艺术(Glitch Art)算法的总结与实现](https://zhuanlan.zhihu.com/p/148256756)
+
+# Notes
+
+PNG file only support RGB/RGBA color space.

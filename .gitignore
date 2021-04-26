@@ -3,6 +3,7 @@ venv/
 playground/
 test_result/
 glitch_result/
+result/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
