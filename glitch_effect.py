@@ -3,24 +3,19 @@
 import math
 import os
 import random
-import enum
-
 # The shutil module offers a number of high-level operations on files and collections of files.
 # In particular, functions are provided which support file copying and removal.
 import shutil
-
 # Decimal fixed point and floating point arithmetic
 # The decimal module provides support for fast correctly-rounded decimal floating point arithmetic.
 # It offers several advantages over the float datatype:
-from decimal import getcontext, Decimal
-
+from decimal import getcontext
 # Support for type hints (Most fundamental: Any, Union, Tuple, Callable, TypeVar, and Generic).
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Union
 
 import numpy as np
-
 # Pillow is the friendly fork of PIL (the Python Imaging Library).
-from PIL import Image, ImageSequence, ImageDraw
+from PIL import Image, ImageSequence
 
 
 class ImageGlitcher:
@@ -37,25 +32,27 @@ class ImageGlitcher:
         self.outputarr = None
 
         # Getting path of temp folders
-        self.lib_path = os.path.split(os.path.abspath(__file__))[0]     # get parent dir
+        self.lib_path = os.path.split(os.path.abspath(__file__))[0]  # get parent dir
         self.gif_dirpath = os.path.join(self.lib_path, 'Glitched GIF')
 
         # Setting glitch_amount max and min
         self.GLITCH_MAX = 10.0
         self.GLITCH_MIN = 0.1
 
-        self.effects = (self.__effect_33,
-                        self.__analog_noise,
-                        self.__rgb_split,
-                        self.__tile_jittered,
-                        self.__screen_jump_effect,
-                        self.__image_block,
-                        self.__screen_shake_effect,
-                        self.__wave_jitter_effect,
-                        self.__image_block,
-                        self.__scan_line,
-                        self.__line_block
-                        )
+        self.effects = (
+            self.__analog_noise,
+            self.__rgb_split,
+            self.__tile_jitter,
+            self.__screen_jump_effect,
+            self.__image_block,
+            self.__screen_shake_effect,
+            self.__wave_jitter_effect,
+            self.__image_block,
+            self.__scan_line,
+            self.__line_block
+        )
+
+        self.__scan_line_current_step = 0
 
         # Return glitched GIF
         # Set up directory for storing glitched images
@@ -280,7 +277,8 @@ class ImageGlitcher:
         """
         random.seed(self.seed + offset)
 
-    def __clamp(self, x, max_, min=0):
+    @staticmethod
+    def __clamp(x, max_, min=0):
         if x < min:
             return min
         elif x > max_:
@@ -288,46 +286,37 @@ class ImageGlitcher:
         else:
             return x
 
-    def __effect_33(self, image: Image.Image):
-        colors = ["#b4b2b5", "#dfd73f", "#6ed2dc", "#66cf5d", "#c542cb", "#d0535e", "#3733c9"]
-        canvas_height = self.img_height
-        canvas_width = self.img_width
-        bnw_layer = Image.new('RGBA', (canvas_width, canvas_height), (0, 0, 0, 0))
-        draw = ImageDraw.Draw(bnw_layer)
-        for i in range(1000):
-            x0 = int(random.random() * canvas_width)
-            y0 = int(random.random() * canvas_height)
-            dx = int(random.random() * 25)
-            dy = int(random.random() * 25)
-            alpha_w = int(255 * 0.1 * random.random())
-            alpha_b = int(255 * 0.1 * random.random())
-            draw.rectangle([x0, y0, x0 + dx, y0 + dy], fill=(0, 0, 0, alpha_b))
-            draw.rectangle([x0, y0, x0 + dx, y0 + dy], fill=(255, 255, 255, alpha_w))
-
-        color_index = random.randint(0, 6)
-        y = int(random.random() * canvas_height)
-        x = int(random.random() * canvas_width)
-        draw.rectangle([x, y, min(x + x, canvas_width), min(y + y, canvas_height)], fill=colors[color_index])
-
-        return Image.alpha_composite(image, bnw_layer)
+    # def __effect_33(self, image: Image.Image):
+    #     # colors = ["#b4b2b5", "#dfd73f", "#6ed2dc", "#66cf5d", "#c542cb", "#d0535e", "#3733c9"]
+    #     canvas_height = self.img_height
+    #     canvas_width = self.img_width
+    #     bnw_layer = Image.new('RGBA', (canvas_width, canvas_height), (0, 0, 0, 0))
+    #     draw = ImageDraw.Draw(bnw_layer)
+    #     for i in range(1000):
+    #         x0 = int(random.random() * canvas_width)
+    #         y0 = int(random.random() * canvas_height)
+    #         dx = int(random.random() * 25)
+    #         dy = int(random.random() * 25)
+    #         alpha_w = int(255 * 0.1 * random.random())
+    #         alpha_b = int(255 * 0.1 * random.random())
+    #         draw.rectangle([x0, y0, x0 + dx, y0 + dy], fill=(0, 0, 0, alpha_b))
+    #         draw.rectangle([x0, y0, x0 + dx, y0 + dy], fill=(255, 255, 255, alpha_w))
+    #
+    #     # color_index = random.randint(0, 6)
+    #     # y = int(random.random() * canvas_height)
+    #     # x = int(random.random() * canvas_width)
+    #     # draw.rectangle([x, y, min(x + x, canvas_width), min(y + y, canvas_height)], fill=colors[color_index])
+    #
+    #     return Image.alpha_composite(image, bnw_layer)
 
     def __analog_noise(self, image: Image.Image, mean=0, stddev=30) -> Image.Image:
+        noise = np.random.randn(*self.outputarr.shape) * stddev
+        np.clip(noise, 0, 255, out=noise).astype('uint16')
 
-        def add_noise(x, mean, stddev):
-            return min(max(0, x + random.normalvariate(mean, stddev)), 255)
-
-        def add_noise_one_pixel(im, x, y, mean=0, stddev=50):
-            pixel = im.getpixel((x, y))
-            pixel = tuple(int(add_noise(channel, mean, stddev)) for channel in pixel)
-            im.putpixel((x, y), pixel)
-
-        for x in range(image.width):
-            for y in range(image.height):
-                add_noise_one_pixel(image, x, y, mean, stddev)
-        return image
+        np.add(self.outputarr.astype('uint16'), noise, out=noise)
+        return Image.fromarray(np.clip(noise.astype('uint8'), 0, 255), self.img_mode)
 
     def __rgb_split(self, image: Image.Image, mean=0, stddev=0.003) -> Image.Image:
-
         x_offset = random.normalvariate(mean, stddev) * image.width
         y_offset = random.normalvariate(mean, stddev) * image.height
 
@@ -338,13 +327,15 @@ class ImageGlitcher:
         for y in range(height):
             for x in range(width):
                 image.putpixel((x, y),
-                               (original.getpixel((self.__clamp(x + x_offset, width - 1), self.__clamp(y + y_offset, height - 1)))[0],
-                                original.getpixel((self.__clamp(x - x_offset, width - 1), self.__clamp(y - y_offset, height - 1)))[1],
+                               (original.getpixel(
+                                   (self.__clamp(x + x_offset, width - 1), self.__clamp(y + y_offset, height - 1)))[0],
+                                original.getpixel(
+                                    (self.__clamp(x - x_offset, width - 1), self.__clamp(y - y_offset, height - 1)))[1],
                                 original.getpixel((self.__clamp(x, width), self.__clamp(y, height)))[2],
                                 original.getpixel((x, y))[3]))
         return image
 
-    def __tile_jittered(self, image: Image.Image, strip_height=50, mean=0, stddev=0.1) -> Image.Image:
+    def __tile_jitter(self, image: Image.Image, strip_height=50, mean=0, stddev=0.1) -> Image.Image:
         x_offset = random.normalvariate(mean, stddev) * image.width
         original = image.copy()
 
@@ -471,8 +462,9 @@ class ImageGlitcher:
                     for i in range(x, x + len_x):
                         image.putpixel((self.__clamp(i, width - 1, 0), self.__clamp(j, height - 1, 0)),
                                        tuple(min(m * n, 255) for (m, n) in zip(color,
-                                                                      original.getpixel(((i + offset_x) % width,
-                                                                                         (j + offset_y) % height)))))
+                                                                               original.getpixel(
+                                                                                   ((i + offset_x) % width,
+                                                                                    (j + offset_y) % height)))))
             else:
                 for j in range(y, y + len_y):
                     for i in range(x, x + len_x):
@@ -489,7 +481,8 @@ class ImageGlitcher:
         height = self.img_height
         shake_array = self.outputarr.copy()
         for i in range(height):
-            shift = int(amplitude * self.__clamp(int(random.normalvariate(0, int(width * offset_ratio))), width, -width))
+            shift = int(
+                amplitude * self.__clamp(int(random.normalvariate(0, int(width * offset_ratio))), width, -width))
             start_y = i
             stop_y = i + 1
 

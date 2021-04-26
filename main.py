@@ -8,7 +8,7 @@ if __name__ == '__main__':
     picture_path = "pics"
     output_path = "result"
 
-    single_effect = 5
+    single_effect = 0
 
     src_images = [f for f in os.listdir(picture_path)
                   if os.path.isfile(os.path.join(picture_path, f)) and not f.startswith('.')]
@@ -30,6 +30,3 @@ if __name__ == '__main__':
                            duration=200,
                            loop=0,
                            compress_level=3)
-
-        # test_image_to_image()
-        # test_image_to_gif()
