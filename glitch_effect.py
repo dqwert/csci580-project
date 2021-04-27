@@ -16,7 +16,7 @@ from typing import List, Optional, Union
 import numpy
 import numpy as np
 # Pillow is the friendly fork of PIL (the Python Imaging Library).
-from PIL import Image, ImageSequence, ImageDraw
+from PIL import Image, ImageSequence, ImageDraw, ImageColor
 
 
 class ImageGlitcher:
@@ -293,7 +293,7 @@ class ImageGlitcher:
         np.add(self.outputarr.astype('uint16'), noise, out=noise)
         return Image.fromarray(np.clip(noise.astype('uint8'), 0, 255), self.img_mode)
 
-    def __rgb_split(self, image: Image.Image, mean=0, stddev=0.006) -> Image.Image:
+    def __rgb_split(self, image: Image.Image, mean=0, stddev=0.01) -> Image.Image:
         width = self.img_width
         height = self.img_height
 
@@ -499,7 +499,7 @@ class ImageGlitcher:
         return image
 
     def __effect_33(self, image):
-        colors = ["#b4b2b5", "#dfd73f", "#6ed2dc", "#66cf5d", "#c542cb", "#d0535e", "#3733c9"]
+        colors = [(185, 65, 210, 128), (96, 178, 78, 128), (236, 68, 68, 128), (37, 128, 190, 128), (220, 43, 255, 128), (128, 128, 255, 128), (128, 212, 64, 128)]
         canvas_height = self.img_height
         canvas_width = self.img_width
         bnw_layer = Image.new('RGBA', (canvas_width, canvas_height), (0, 0, 0, 0))
@@ -509,8 +509,8 @@ class ImageGlitcher:
             y0 = int(random.random() * canvas_height)
             dx = int(random.random() * 25)
             dy = int(random.random() * 25)
-            alpha_w = int(255 * 0.1 * random.random())
-            alpha_b = int(255 * 0.1 * random.random())
+            alpha_w = int(255 * 0.5 * random.random())
+            alpha_b = int(255 * 0.5 * random.random())
             draw.rectangle([x0, y0, x0 + dx, y0 + dy], fill=(0, 0, 0, alpha_b))
             draw.rectangle([x0, y0, x0 + dx, y0 + dy], fill=(255, 255, 255, alpha_w))
 
