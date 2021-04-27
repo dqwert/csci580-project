@@ -12,7 +12,7 @@ if __name__ == '__main__':
                   if os.path.isfile(os.path.join(picture_path, f)) and not f.startswith('.')]
 
     for src_image in src_images:
-        for single_effect in range(9, 10):
+        for single_effect in range(10):
             # src_image = "source.png"
             print('processing: ', os.path.join(picture_path, src_image))
             glitcher = ImageGlitcher()
