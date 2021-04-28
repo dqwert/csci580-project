@@ -13,9 +13,10 @@ from decimal import getcontext
 # Support for type hints (Most fundamental: Any, Union, Tuple, Callable, TypeVar, and Generic).
 from typing import List, Optional, Union
 
+import numpy
 import numpy as np
 # Pillow is the friendly fork of PIL (the Python Imaging Library).
-from PIL import Image, ImageSequence
+from PIL import Image, ImageSequence, ImageDraw
 
 
 class ImageGlitcher:
@@ -44,12 +45,13 @@ class ImageGlitcher:
             self.__rgb_split,
             self.__tile_jitter,
             self.__screen_jump_effect,
-            self.__image_block,
             self.__screen_shake_effect,
             self.__wave_jitter_effect,
             self.__image_block,
+            self.__image_block_hsv,
             self.__scan_line,
-            self.__line_block
+            self.__line_block,
+            self.__color_block,
         )
 
         self.__scan_line_current_step = 0
@@ -147,7 +149,7 @@ class ImageGlitcher:
                      cycle: bool = False,
                      frames: int = 23,
                      step: int = 1,
-                     effect_type_seq: tuple[int] = ()
+                     effect_type_seq=()
                      ) -> Union[Image.Image, List[Image.Image]]:
         """
          Sets up values needed for glitching the image
@@ -251,7 +253,7 @@ class ImageGlitcher:
         shutil.rmtree(self.gif_dirpath)
         return glitched_imgs
 
-    def __apply_glitch(self, effect_type_seq: tuple[int] = ()) -> Image.Image:
+    def __apply_glitch(self, effect_type_seq=()) -> Image.Image:
 
         if self.seed:
             # Get the same channels on the next call, we have to reset the rng seed
@@ -259,10 +261,15 @@ class ImageGlitcher:
             self.__reset_seed()
 
         image = Image.fromarray(self.outputarr, self.img_mode)
+        outputarr = self.outputarr
 
         if len(effect_type_seq) > 0:
             for i in effect_type_seq:
                 image = self.effects[i](image)
+                self.outputarr = np.array(image)
+
+        self.outputarr = outputarr
+
 
         # Creating glitched image from output array
         # return Image.fromarray(self.outputarr, self.img_mode)
@@ -277,63 +284,36 @@ class ImageGlitcher:
         """
         random.seed(self.seed + offset)
 
-    @staticmethod
-    def __clamp(x, max_, min=0):
-        if x < min:
-            return min
+    def clamp_int(self, x, max_, min_=0):
+        if x < min_:
+            return int(min_)
         elif x > max_:
-            return max_
+            return int(max_)
         else:
-            return x
+            return int(x)
 
-    # def __effect_33(self, image: Image.Image):
-    #     # colors = ["#b4b2b5", "#dfd73f", "#6ed2dc", "#66cf5d", "#c542cb", "#d0535e", "#3733c9"]
-    #     canvas_height = self.img_height
-    #     canvas_width = self.img_width
-    #     bnw_layer = Image.new('RGBA', (canvas_width, canvas_height), (0, 0, 0, 0))
-    #     draw = ImageDraw.Draw(bnw_layer)
-    #     for i in range(1000):
-    #         x0 = int(random.random() * canvas_width)
-    #         y0 = int(random.random() * canvas_height)
-    #         dx = int(random.random() * 25)
-    #         dy = int(random.random() * 25)
-    #         alpha_w = int(255 * 0.1 * random.random())
-    #         alpha_b = int(255 * 0.1 * random.random())
-    #         draw.rectangle([x0, y0, x0 + dx, y0 + dy], fill=(0, 0, 0, alpha_b))
-    #         draw.rectangle([x0, y0, x0 + dx, y0 + dy], fill=(255, 255, 255, alpha_w))
-    #
-    #     # color_index = random.randint(0, 6)
-    #     # y = int(random.random() * canvas_height)
-    #     # x = int(random.random() * canvas_width)
-    #     # draw.rectangle([x, y, min(x + x, canvas_width), min(y + y, canvas_height)], fill=colors[color_index])
-    #
-    #     return Image.alpha_composite(image, bnw_layer)
-
-    def __analog_noise(self, image: Image.Image, mean=0, stddev=30) -> Image.Image:
+    def __analog_noise(self, image: Image.Image, mean=0, stddev=50) -> Image.Image:
         noise = np.random.randn(*self.outputarr.shape) * stddev
         np.clip(noise, 0, 255, out=noise).astype('uint16')
 
         np.add(self.outputarr.astype('uint16'), noise, out=noise)
-        return Image.fromarray(np.clip(noise.astype('uint8'), 0, 255), self.img_mode)
+        return Image.fromarray(np.clip(noise, 0, 255).astype('uint8'), self.img_mode)
 
-    def __rgb_split(self, image: Image.Image, mean=0, stddev=0.003) -> Image.Image:
-        x_offset = random.normalvariate(mean, stddev) * image.width
-        y_offset = random.normalvariate(mean, stddev) * image.height
+    def __rgb_split(self, image: Image.Image, mean=0, stddev=0.01) -> Image.Image:
+        width = self.img_width
+        height = self.img_height
 
-        original = image.copy()
+        x_offset = random.normalvariate(mean, stddev) * width
+        y_offset = random.normalvariate(mean, stddev) * height
 
-        width = image.width
-        height = image.height
-        for y in range(height):
-            for x in range(width):
-                image.putpixel((x, y),
-                               (original.getpixel(
-                                   (self.__clamp(x + x_offset, width - 1), self.__clamp(y + y_offset, height - 1)))[0],
-                                original.getpixel(
-                                    (self.__clamp(x - x_offset, width - 1), self.__clamp(y - y_offset, height - 1)))[1],
-                                original.getpixel((self.__clamp(x, width), self.__clamp(y, height)))[2],
-                                original.getpixel((x, y))[3]))
-        return image
+        frame = self.outputarr.copy()
+
+        for y in range(self.img_height):
+            for x in range(self.img_width):
+                frame[y][x][0] = self.outputarr[self.clamp_int(y + y_offset, height - 1)][self.clamp_int(x + x_offset, width - 1)][0]
+                frame[y][x][2] = self.outputarr[self.clamp_int(y - y_offset, height - 1)][self.clamp_int(x - x_offset, width - 1)][2]
+
+        return Image.fromarray(frame, self.img_mode)
 
     def __tile_jitter(self, image: Image.Image, strip_height=50, mean=0, stddev=0.1) -> Image.Image:
         x_offset = random.normalvariate(mean, stddev) * image.width
@@ -435,32 +415,33 @@ class ImageGlitcher:
             shake_array[start_y:stop_y, stop_x:] = wrap_chunk
         return Image.fromarray(shake_array, self.img_mode)
 
-    def __image_block(self, image: Image.Image, color_effect=True,
-                      num_mean=20, num_stddev=10,
+    def __image_block(self, image: Image.Image, color_effect=False,
+                      num_mean=10, num_stddev=10,
                       size_mean=0.09, size_stddev=0.03,
                       offset_mean=0, offset_stddev=0.05) -> Image.Image:
         original = image.copy()
         block_num = int(random.normalvariate(num_mean, num_stddev))
         height = image.height
         width = image.width
+
         colors = ["#b4b2b5", "#dfd73f", "#6ed2dc", "#66cf5d", "#c542cb", "#d0535e", "#3733c9"]
 
         for _ in range(block_num):
             x = random.randint(0, width - 1)
             y = random.randint(0, height - 1)
 
-            len_x = int(random.normalvariate(size_mean, size_stddev) * width)
+            len_x = int(random.normalvariate(size_mean, size_stddev) * width * 3)
             len_y = int(random.normalvariate(size_mean, size_stddev) * height)
 
             offset_x = int(random.normalvariate(offset_mean, offset_stddev) * width)
             offset_y = int(random.normalvariate(offset_mean, offset_stddev) * height)
 
-            color = np.random.randint(3, size=4).tolist()
+            color = np.random.randint(3, size=4)
 
             if color_effect:
                 for j in range(y, y + len_y):
                     for i in range(x, x + len_x):
-                        image.putpixel((self.__clamp(i, width - 1, 0), self.__clamp(j, height - 1, 0)),
+                        image.putpixel((self.clamp_int(i, width - 1, 0), self.clamp_int(j, height - 1, 0)),
                                        tuple(min(m * n, 255) for (m, n) in zip(color,
                                                                                original.getpixel(
                                                                                    ((i + offset_x) % width,
@@ -468,8 +449,37 @@ class ImageGlitcher:
             else:
                 for j in range(y, y + len_y):
                     for i in range(x, x + len_x):
-                        image.putpixel((self.__clamp(i, width - 1, 0), self.__clamp(j, height - 1, 0)),
+                        image.putpixel((self.clamp_int(i, width - 1, 0), self.clamp_int(j, height - 1, 0)),
                                        original.getpixel(((i + offset_x) % width, (j + offset_y) % height)))
+        return image
+
+    def __image_block_hsv(self, image: Image.Image,
+                      num_mean=8, num_stddev=3,
+                      size_mean=0.09, size_stddev=0.03,
+                      offset_mean=0, offset_stddev=0.05) -> Image.Image:
+        arr = np.array(image.convert(mode="HSV"))
+        ori = image.copy()
+        block_num = int(random.normalvariate(num_mean, num_stddev))
+
+        for _ in range(block_num):
+            x = random.randint(0, self.img_width - 1)
+            y = random.randint(0, self.img_height - 1)
+
+            len_x = int(random.normalvariate(size_mean, size_stddev) * self.img_width * 5)
+            len_y = int(random.normalvariate(size_mean, size_stddev) * self.img_height)
+
+            offset_x = int(random.normalvariate(offset_mean, offset_stddev) * self.img_width)
+            offset_y = int(random.normalvariate(offset_mean, offset_stddev) * self.img_height)
+
+            color = (np.random.randn(4) + 1).astype('uint16')
+
+            for j in range(y, y + len_y):
+                for i in range(x, x + len_x):
+                    image.putpixel((self.clamp_int(i, self.img_width - 1, 0), self.clamp_int(j, self.img_height - 1, 0)),
+                                   tuple(min(m * n, 255) for (m, n) in zip(color,
+                                                                           ori.getpixel(
+                                                                               ((i + offset_x) % self.img_width,
+                                                                                (j + offset_y) % self.img_height)))))
         return image
 
     def __scan_line(self, image: Image.Image, offset_ratio=0.1, total_step=30):
@@ -482,7 +492,7 @@ class ImageGlitcher:
         shake_array = self.outputarr.copy()
         for i in range(height):
             shift = int(
-                amplitude * self.__clamp(int(random.normalvariate(0, int(width * offset_ratio))), width, -width))
+                amplitude * self.clamp_int(int(random.normalvariate(0, int(width * offset_ratio))), width, -width))
             start_y = i
             stop_y = i + 1
 
@@ -518,5 +528,32 @@ class ImageGlitcher:
 
             for x in range(width):
                 if glitch:
-                    image.putpixel((x, y), original.getpixel((self.__clamp(x + offset, width - 1), y)))
+                    image.putpixel((x, y), original.getpixel((self.clamp_int(x + offset, width - 1), y)))
         return image
+
+    def __color_block(self, image):
+        colors = [(185, 65, 210, 128), (96, 178, 78, 128), (236, 68, 68, 128), (37, 128, 190, 128), (220, 43, 255, 128), (128, 128, 255, 128), (128, 212, 64, 128)]
+        canvas_height = self.img_height
+        canvas_width = self.img_width
+        bnw_layer = Image.new('RGBA', (canvas_width, canvas_height), (0, 0, 0, 0))
+        draw = ImageDraw.Draw(bnw_layer)
+        for i in range(1000):
+            x0 = int(random.random() * canvas_width)
+            y0 = int(random.random() * canvas_height)
+            dx = int(random.random() * 25)
+            dy = int(random.random() * 25)
+            alpha_w = int(255 * 0.5 * random.random())
+            alpha_b = int(255 * 0.5 * random.random())
+            draw.rectangle([x0, y0, x0 + dx, y0 + dy], fill=(0, 0, 0, alpha_b))
+            draw.rectangle([x0, y0, x0 + dx, y0 + dy], fill=(255, 255, 255, alpha_w))
+
+        color_index = random.randint(0, 6)
+        y = int(random.random() * canvas_height)
+        x = int(random.random() * canvas_width)
+        draw.rectangle([x, y, min(x + x, canvas_width), min(y + y, canvas_height)], fill=colors[color_index])
+
+        res = Image.alpha_composite(image.convert('RGBA'), bnw_layer)
+        background = Image.new("RGB", res.size, (255, 255, 255))
+        background.paste(res, mask=res.split()[3])  # 3 is the alpha channel
+
+        return res
