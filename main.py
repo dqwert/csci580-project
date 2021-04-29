@@ -42,4 +42,4 @@ def gen_effects_of_all_image(img_path="pics", out_path="result", effect_type_seq
 
 
 if __name__ == '__main__':
-    gen_effects_of_all_image()
+    gen_all_single_effects_of_all_image()

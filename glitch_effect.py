@@ -44,9 +44,9 @@ class ImageGlitcher:
             self.__analog_noise,
             self.__rgb_split,
             self.__tile_jitter,
-            self.__screen_jump_effect,
-            self.__screen_shake_effect,
-            self.__wave_jitter_effect,
+            self.__screen_jump,
+            self.__screen_shake,
+            self.__wave_jitter,
             self.__image_block,
             self.__image_block_hsv,
             self.__scan_line,
@@ -334,7 +334,7 @@ class ImageGlitcher:
                     image.putpixel((x, y), original.getpixel(((x + x_offset) % width, y)))
         return image
 
-    def __screen_jump_effect(self, image: Image.Image, vertical=True):
+    def __screen_jump(self, image: Image.Image, vertical=True):
         if not vertical:
             start_y = 0
             stop_y = self.img_height
@@ -364,7 +364,7 @@ class ImageGlitcher:
 
         return Image.fromarray(self.outputarr, self.img_mode)
 
-    def __screen_shake_effect(self, image: Image.Image, amplitude=5):
+    def __screen_shake(self, image: Image.Image, amplitude=5):
         start_y = 0
         stop_y = self.img_height
 
@@ -387,7 +387,7 @@ class ImageGlitcher:
 
         return Image.fromarray(shake_array, self.img_mode)
 
-    def __wave_jitter_effect(self, image: Image.Image, wave=10, amplitude=10):
+    def __wave_jitter(self, image: Image.Image, wave=10, amplitude=10):
         height = self.img_height
         vertical_range = height / wave
         offset = random.randint(0, self.img_height)
