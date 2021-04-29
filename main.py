@@ -7,7 +7,7 @@ def gen_all_single_effects_of_all_image(img_path="pics", out_path="result"):
                   if os.path.isfile(os.path.join(img_path, f)) and not f.startswith('.')]
 
     for src_image in src_images:
-        for effect_i in range(10):
+        for effect_i in range(11):
             print('processing ', os.path.join(img_path, src_image), "effect =", effect_i)
             glitcher = ImageGlitcher()
             glitch_img = glitcher.glitch_image(os.path.join(img_path, src_image), gif=True,
@@ -21,7 +21,7 @@ def gen_all_single_effects_of_all_image(img_path="pics", out_path="result"):
                                compress_level=3)
 
 
-def gen_effects_of_all_image(img_path="pics", out_path="result", effect_type_seq=(1, )):
+def gen_stacked_effects_of_all_image(img_path="pics", out_path="result", effect_type_seq=(10,)):
     src_images = [f for f in os.listdir(img_path)
                   if os.path.isfile(os.path.join(img_path, f)) and not f.startswith('.')]
 
@@ -42,4 +42,5 @@ def gen_effects_of_all_image(img_path="pics", out_path="result", effect_type_seq
 
 
 if __name__ == '__main__':
-    gen_all_single_effects_of_all_image()
+    # gen_all_single_effects_of_all_image()
+    gen_stacked_effects_of_all_image()
