@@ -1,4 +1,4 @@
-# Current Implemented Effects
+# Implemented Effects
 
 (May take long to load.)
 
